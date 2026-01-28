@@ -4,7 +4,7 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[('/Users/tylu/miniforge3/envs/ebook/bin/ebook-converter', '.')],
+    binaries=[],
     datas=[],
     hiddenimports=[],
     hookspath=['.'],

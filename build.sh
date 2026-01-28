@@ -1,4 +1,13 @@
-pyinstaller --onefile -n ebook2kindle -y \
+pyinstaller --onedir -n ebook2kindle -y \
+--additional-hooks-dir=. --windowed \
 --add-binary "/Users/tylu/miniforge3/envs/ebook/bin/ebook-converter:." \
---additional-hooks-dir=. --windowed --clean main.py
+--clean main.py
 
+
+pyinstaller --onedir -n ebook2kindle -y \
+--additional-hooks-dir=. --windowed \
+--clean main.py
+
+pyinstaller --onefile -n ebook2kindle -y \
+--additional-hooks-dir=. --windowed \
+--clean main.py

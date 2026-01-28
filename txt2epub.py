@@ -8,6 +8,7 @@ import uuid
 import html
 import re
 
+from userConfig import generate_css
 
 @dataclass
 class EpubResult:
@@ -142,6 +143,7 @@ def text_to_xhtml_body(text: str) -> str:
 def txt_to_epub(
     input_txt: str,
     output_epub: str,
+    css: str,
     title: str | None = None,
     author: str = "Unknown",
     language: str | None = None,
@@ -184,14 +186,6 @@ def txt_to_epub(
     _log(f"Detected chapters: {len(chapter_specs)}")
 
 
-    css = """
-    html, body { margin: 0; padding: 0; text-align: left; }
-    p { margin: 0; padding: 0; text-indent: 1em; }
-    p + p { margin: 0.3em; }
-    div, section { margin: 0; padding: 0; }
-    h1 { margin: 0.8em 0; font-weight: 600; text-indent: 0; }
-    * { word-break: break-word; overflow-wrap: anywhere; }
-    """
 
     css_item = epub.EpubItem(
         uid="style",

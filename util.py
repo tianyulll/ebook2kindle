@@ -58,7 +58,7 @@ def extract_metadata(input_path: Path) -> tuple[str, str]:
 
     return title, author
 
-def convert_format(file_path: str, output_display: tk.Text) -> str:
+def convert_format(file_path: str, output_display: tk.Text, css: str) -> str:
     input_path = Path(file_path)
     input_dir = input_path.parent
 
@@ -75,6 +75,7 @@ def convert_format(file_path: str, output_display: tk.Text) -> str:
         res = txt_to_epub(
             input_txt=input_path,
             output_epub=output_path,
+            css=css,
             title=auto_title,
             author=auto_author,
         )

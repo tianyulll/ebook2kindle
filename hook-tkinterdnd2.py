@@ -1,7 +1,7 @@
 # pyinstaller hook file
 import os
 import platform
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 
 s = platform.system()
 p = {
@@ -19,3 +19,5 @@ if s in p:
     ])
 else:
     raise RuntimeError(f'TkinterDnD2 is not supported on platform "{s}".')
+
+hiddenimports = collect_submodules("userConfig")

@@ -3,7 +3,8 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 from send2device import send_email
 from util import convert_format
 from tkinter import font as tkFont
-from mail_config import load_credentials, remove_credentials
+
+from userConfig import load_settings, SettingsDialog, generate_css
 
 class App:
     
@@ -12,16 +13,23 @@ class App:
         self.root = TkinterDnD.Tk()
         self.root.title("ebook2kindle helper")
         self.root.geometry("600x600")
-
-        self.selected_files = [] # storing input files
-        self.output_files = []
+        
+        self.setting = load_settings() 
+        self.selected_files = []
+        self.output_files = [] 
         self.create_widgets()
-    
+
     def on_drop(self, event):
         self.selected_files.extend(list(self.root.tk.splitlist(event.data)))
         self.drag_label.config(text="Selected Files:\n" + "\n".join(self.selected_files),
                                wraplength=550, justify="left",
                                font=("Helvetica", 14), fg="black")
+
+    def open_settings(self):
+        def on_saved(updated_settings):
+            self.settings = updated_settings
+        SettingsDialog(self.root, settings=self.setting, on_saved=on_saved)
+
 
     def create_widgets(self):
         # Create a combined frame for drag-and-drop and display at the top of the window
@@ -57,7 +65,7 @@ class App:
 
         # button to reset email credentials
         helv24 = tkFont.Font(family='Helvetica', size=24)
-        reset_button = tk.Button(button_frame, text="⚙", font=helv24, command=remove_credentials, 
+        reset_button = tk.Button(button_frame, text="⚙", font=helv24, command=self.open_settings, 
                                  relief=tk.FLAT, bd=0, borderwidth=0)
 
         button_frame.columnconfigure(1, weight=1)
@@ -78,11 +86,19 @@ class App:
             tk.messagebox.showwarning("Warning", "No files selected.")
             return
         
+        # Read in CSS configuration
+        css = generate_css(
+            text_indent_em=self.settings.text_indent_em,
+            paragraph_spacing_em=self.settings.paragraph_spacing_em,
+        )
+
         for file_path in self.selected_files:
             try:
                 # Display the content in the label (optional)
                 self.drag_label.config(text=f"Processing file: {file_path}")
-                result = convert_format(file_path=file_path, output_display=self.output_text)
+                result = convert_format(file_path=file_path, 
+                                        output_display=self.output_text,
+                                        css=css)
                 self.output_files.append(result)
                 # Update the label with success message
                 self.drag_label.config(text=f"Conversion complete: {result}")
@@ -95,7 +111,7 @@ class App:
 
     # send file to device upon clicking the send button
     def click_send(self):
-        sender_email, recipient_email, password = load_credentials()
+        sender_email, recipient_email, password = ""
         send_email(sender_email=sender_email,
                    sender_password=password,
                    recipient_email=recipient_email,
