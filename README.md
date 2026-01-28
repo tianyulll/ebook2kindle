@@ -1,17 +1,18 @@
-East compiled tool for ebook conversion and send to device
+Ebook conversion and send to device
 
-## Wrapped of a couple tools:
-- 
-- 
-- 
+## Features
+- Accepts txt and convert to epub. 
+- Automatically handles encoding and language.
+- Detects Chapters in `zh` and `en`.
+- Style tailored for kindle-compatibilitly.
+- Allows batch conversion - Just drop all files at once!
 
 ## Installation & usage:
 1. Installed dependencies
 2. Build this software
 3. Drag the files. They will be sent to kindle.
+Alternatively use the compiled software under build.
 
-## Workflow:
-1. Convert input from its original format to epub
-## To-do:
-- shift dependencies to pypi-epub
-- create binary versions
+## to-do
+- send to device through email.
+- allow other formats all to epub.

@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
-from send import send_email
+from send2device import send_email
 from util import convert_format
 from tkinter import font as tkFont
-from config import load_credentials, remove_credentials
+from mail_config import load_credentials, remove_credentials
 
 class App:
     

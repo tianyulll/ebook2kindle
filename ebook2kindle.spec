@@ -4,7 +4,7 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[('/Users/tylu/tool/kaf/kaf-cli', '.'), ('/Users/tylu/miniforge3/envs/ebook/bin/ebook-converter', '.')],
+    binaries=[('/Users/tylu/miniforge3/envs/ebook/bin/ebook-converter', '.')],
     datas=[],
     hiddenimports=[],
     hookspath=['.'],

@@ -1,15 +1,7 @@
-"""pyinstaller hook file.
-
-You need to use this hook-file if you are packaging a project using tkinterdnd2.
-Just put hook-tkinterdnd2.py in the same directory where you call pyinstaller and type:
-
-    pyinstaller myproject/myproject.py --additional-hooks-dir=.
-"""
-
+# pyinstaller hook file
 import os
 import platform
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
-
 
 s = platform.system()
 p = {
