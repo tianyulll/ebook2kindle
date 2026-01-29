@@ -55,22 +55,49 @@ class SettingsDialog(tk.Toplevel):
             row=1, column=1, sticky="w", padx=(10, 0), pady=(8, 0)
         )
 
-        ttk.Label(mail_frame, text="SMTP host:").grid(row=2, column=0, sticky="w", pady=(8, 0))
+        # Sender password (encrypted at save time)
+        ttk.Label(mail_frame, text="Sender password:").grid(row=2, column=0, sticky="w", pady=(8, 0))
+        self.sender_pass_var = tk.StringVar(value="")
+
+        self.sender_pass_entry = ttk.Entry(
+            mail_frame, textvariable=self.sender_pass_var, width=40, show="•"
+        )
+        self.sender_pass_entry.grid(row=2, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
+        
+        # Show password toggle
+        self.show_pass_var = tk.BooleanVar(value=False)
+
+        def _toggle_show_password() -> None:
+            self.sender_pass_entry.configure(show="" if self.show_pass_var.get() else "•")
+
+        ttk.Checkbutton(
+            mail_frame,
+            text="Show password",
+            variable=self.show_pass_var,
+            command=_toggle_show_password,
+        ).grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(4, 0))
+        
+        # Hint (blank keeps existing)
+        has_saved_pw = bool(getattr(self.settings, "sender_pass_enc", "") or "")
+        hint = "Leave blank to keep the saved password." if has_saved_pw else "Enter an app password (recommended)."
+        ttk.Label(mail_frame, text=hint).grid(row=4, column=1, sticky="w", padx=(10, 0), pady=(4, 0))
+
+        ttk.Label(mail_frame, text="SMTP host:").grid(row=5, column=0, sticky="w", pady=(8, 0))
         self.smtp_host_var = tk.StringVar(value=self.settings.smtp_host)
         ttk.Entry(mail_frame, textvariable=self.smtp_host_var, width=30).grid(
-            row=2, column=1, sticky="w", padx=(10, 0), pady=(8, 0)
+            row=4, column=1, sticky="w", padx=(10, 0), pady=(8, 0)
         )
 
-        ttk.Label(mail_frame, text="SMTP port:").grid(row=3, column=0, sticky="w", pady=(8, 0))
+        ttk.Label(mail_frame, text="SMTP port:").grid(row=6, column=0, sticky="w", pady=(8, 0))
         self.smtp_port_var = tk.IntVar(value=int(self.settings.smtp_port))
         ttk.Spinbox(
             mail_frame, from_=1, to=65535, increment=1,
             textvariable=self.smtp_port_var, width=8
-        ).grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
+        ).grid(row=5, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
 
         self.smtp_tls_var = tk.BooleanVar(value=bool(self.settings.smtp_use_tls))
         ttk.Checkbutton(mail_frame, text="Use STARTTLS (recommended)", variable=self.smtp_tls_var).grid(
-            row=4, column=0, columnspan=2, sticky="w", pady=(8, 0)
+            row=7, column=0, columnspan=2, sticky="w", pady=(8, 0)
         )
 
         mail_frame.columnconfigure(0, weight=1)
@@ -82,7 +109,7 @@ class SettingsDialog(tk.Toplevel):
         ttk.Button(btns, text="Cancel", command=self.destroy).pack(side="right")
         ttk.Button(btns, text="Save", command=self._save).pack(side="right", padx=(0, 10))
 
-        self.geometry("560x420")
+        self.geometry("560x480")
 
     def _save(self):
         # Validate numeric CSS values
@@ -103,6 +130,7 @@ class SettingsDialog(tk.Toplevel):
         # Email settings (light validation; keep it permissive)
         kindle_email = (self.kindle_email_var.get() or "").strip()
         sender_email = (self.sender_email_var.get() or "").strip()
+        sender_password = (self.sender_pass_var.get() or "").strip()
         smtp_host = (self.smtp_host_var.get() or "").strip()
         try:
             smtp_port = int(self.smtp_port_var.get())
@@ -126,6 +154,15 @@ class SettingsDialog(tk.Toplevel):
         self.settings.smtp_host = smtp_host
         self.settings.smtp_port = smtp_port
         self.settings.smtp_use_tls = bool(self.smtp_tls_var.get())
+
+        # Encrypt+store password only if user entered one
+        if sender_password:
+            try:
+                self.settings.set_sender_password(sender_password)
+            except Exception as e:
+                messagebox.showerror("Password error", f"Could not store password securely:\n{e}")
+                return
+        # else: leave existing sender_pass_enc unchanged
 
         # Persist
         try:

@@ -8,7 +8,6 @@ import uuid
 import html
 import re
 
-from userConfig import generate_css
 
 @dataclass
 class EpubResult:
@@ -184,8 +183,6 @@ def txt_to_epub(
     _log("Splitting chapters...")
     chapter_specs = split_into_chapters(text)
     _log(f"Detected chapters: {len(chapter_specs)}")
-
-
 
     css_item = epub.EpubItem(
         uid="style",

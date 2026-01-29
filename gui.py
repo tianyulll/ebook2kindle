@@ -1,20 +1,23 @@
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
-from send2device import send_email
 from util import convert_format
 from tkinter import font as tkFont
+from tkinter import messagebox
 
 from userConfig import load_settings, SettingsDialog, generate_css
+from send2device import send_files_via_smtp, EmailSendError
+
 
 class App:
     
+
     def __init__(self):
         
         self.root = TkinterDnD.Tk()
         self.root.title("ebook2kindle helper")
         self.root.geometry("600x600")
         
-        self.setting = load_settings() 
+        self.settings = load_settings() 
         self.selected_files = []
         self.output_files = [] 
         self.create_widgets()
@@ -28,7 +31,7 @@ class App:
     def open_settings(self):
         def on_saved(updated_settings):
             self.settings = updated_settings
-        SettingsDialog(self.root, settings=self.setting, on_saved=on_saved)
+        SettingsDialog(self.root, settings=self.settings, on_saved=on_saved)
 
 
     def create_widgets(self):
@@ -37,7 +40,7 @@ class App:
         drag_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Create a label inside the combined frame for dragging files
-        self.drag_label = tk.Label(drag_frame, text="Drag and drop files here", font=("Helvetica", 28), bg="white", fg="Grey", anchor="center")
+        self.drag_label = tk.Label(drag_frame, text="Drag and drop Your txt files", font=("Helvetica", 28), bg="white", fg="Grey", anchor="center")
         self.drag_label.pack(fill=tk.BOTH, expand=True, pady=10)
 
         # Bind the drag-and-drop event to the on_drop function
@@ -86,6 +89,8 @@ class App:
             tk.messagebox.showwarning("Warning", "No files selected.")
             return
         
+        self.settings = load_settings()
+
         # Read in CSS configuration
         css = generate_css(
             text_indent_em=self.settings.text_indent_em,
@@ -109,16 +114,6 @@ class App:
         
         self.drag_label.config(text=f"output files: {self.output_files}")
 
-    # send file to device upon clicking the send button
-    def click_send(self):
-        sender_email, recipient_email, password = ""
-        send_email(sender_email=sender_email,
-                   sender_password=password,
-                   recipient_email=recipient_email,
-                   subject="ebook delivery",
-                   attachment_paths=self.output_files)
-        self.reset_app()
-
     def reset_app(self):
         self.reset_input()
         self.output_files.clear()
@@ -129,4 +124,56 @@ class App:
         self.drag_label.event_delete    
         self.drag_label.config(text="Drag and drop files here", font=("Helvetica", 28), fg="Grey")
 
+    # send file to device upon clicking the send button
+    def click_send(self):
+        # Reload settings in case user just updated them
+        self.settings = load_settings()
+        s = self.settings
 
+        if not getattr(self, "output_files", None):
+            messagebox.showwarning("Nothing to send", "No output files found. Convert something first.")
+            return
+
+        to_addr = (s.kindle_email or "").strip()
+        smtp_user = (s.sender_email or "").strip()
+        smtp_host = (s.smtp_host or "").strip()
+        smtp_port = int(s.smtp_port or 587)
+
+        # Basic validation
+        if not to_addr:
+            messagebox.showerror("Missing setting", "Please set your Kindle email in Settings.")
+            return
+        if not smtp_user:
+            messagebox.showerror("Missing setting", "Please set your Sender email in Settings.")
+            return
+        if not getattr(s, "sender_pass_enc", ""):
+            messagebox.showerror("Missing setting", "Please set your Sender password in Settings.")
+            return
+        if not smtp_host:
+            messagebox.showerror("Missing setting", "Please set your SMTP host in Settings.")
+            return
+
+        try:
+            smtp_password = s.get_sender_password()
+            if not smtp_password:
+                messagebox.showerror("Missing setting", "Sender password is empty. Please re-enter it in Settings.")
+                return
+
+            send_files_via_smtp(
+                smtp_host=smtp_host,
+                smtp_port=smtp_port,
+                smtp_user=smtp_user,
+                smtp_password=smtp_password,
+                to_addr=to_addr,
+                files=self.output_files,
+                subject="Send to Kindle",
+                body="Sent from ebook2kindle helper.",
+                use_starttls=bool(s.smtp_use_tls),
+            )
+
+            messagebox.showinfo("Sent", f"Sent {len(self.output_files)} file(s) to:\n{to_addr}")
+
+        except EmailSendError as e:
+            messagebox.showerror("Send failed", str(e))
+        except Exception as e:
+            messagebox.showerror("Unexpected error", f"{e}")

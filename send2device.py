@@ -1,63 +1,61 @@
+from __future__ import annotations
+
+import mimetypes
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-from email.header import Header
-from tkinter import messagebox
-import os
-from util import auto_close_messagebox
+from email.message import EmailMessage
+from pathlib import Path
+from typing import Iterable
 
-# Send an email 
-# if gmail, the app password needs to be set up
-def send_email(sender_email, sender_password, recipient_email, subject, attachment_paths, body=""):
-    # Create a multipart message
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
 
-    # Attach the body with the msg instance
-    msg.attach(MIMEText(body, 'plain'))
+class EmailSendError(RuntimeError):
+    pass
 
-    if not attachment_paths:
-        messagebox.showerror("Error", "No file in the queue")
-        return
 
-    # Attach each file in the attachment_paths list
-    for attachment_path in attachment_paths:
-        
-        if not os.path.isfile(attachment_path):
-            messagebox.showerror("Error", f"File {attachment_path} does not exist or cannot be accessed.")
-            continue
+def send_files_via_smtp(
+    *,
+    smtp_host: str,
+    smtp_port: int,
+    smtp_user: str,
+    smtp_password: str,
+    to_addr: str,
+    files: Iterable[str | Path],
+    subject: str = "Send to Kindle",
+    body: str = "Sent from ebook2kindle helper.",
+    use_starttls: bool = True,
+) -> None:
+    files = [Path(f) for f in files]
 
-        with open(attachment_path, "rb") as attachment:
-            # Instance of MIMEBase and named as part
-            part = MIMEBase('application', 'octet-stream')
+    missing = [str(f) for f in files if not f.exists()]
+    if missing:
+        raise EmailSendError(f"Attachment(s) not found:\n" + "\n".join(missing))
 
-            # To change the payload into encoded form
-            part.set_payload(attachment.read())
+    msg = EmailMessage()
+    msg["From"] = smtp_user
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg.set_content(body)
 
-            # Encode into base64
-            encoders.encode_base64(part)
+    for f in files:
+        ctype, encoding = mimetypes.guess_type(str(f))
+        if ctype is None or encoding is not None:
+            ctype = "application/octet-stream"
+        maintype, subtype = ctype.split("/", 1)
+        msg.add_attachment(
+            f.read_bytes(),
+            maintype=maintype,
+            subtype=subtype,
+            filename=f.name,
+        )
 
-            # Add header with the name of the file
-            file_name = os.path.basename(attachment_path)
-            part.add_header('Content-Disposition', 'attachment', filename=str(Header(file_name, 'utf-8')))
-
-            # Attach the instance 'part' to instance 'msg'
-            msg.attach(part)
-
-    # Create SMTP session for sending the mail
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)  # Use the appropriate SMTP server and port
-        server.starttls()  # Enable security
-        server.login(sender_email, sender_password)  # Log in to your email account
-        text = msg.as_string()
-        server.sendmail(sender_email, recipient_email, text)  # Send the email
-        auto_close_messagebox("Success", f"Email sent to {recipient_email} successfully!")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to send email. Error: {e}")
-    finally:
-        server.quit()  # Close the connection
-
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+            server.ehlo()
+            if use_starttls:
+                server.starttls()
+                server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+    except smtplib.SMTPException as e:
+        raise EmailSendError(f"SMTP send failed: {e}") from e
+    except OSError as e:
+        raise EmailSendError(f"Network/OS error: {e}") from e
