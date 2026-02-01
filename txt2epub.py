@@ -116,27 +116,38 @@ def split_into_chapters(text: str) -> list[tuple[str, str]]:
 
 
 def text_to_xhtml_body(text: str) -> str:
-    """Plain text -> XHTML body: paragraphs split by blank lines; wrap lines within a paragraph."""
+    """
+    Plain text -> XHTML body.
+
+    Primary mode: paragraphs split by blank lines.
+    Fallback mode: if there are no blank lines, treat each non-empty line as a paragraph.
+    """
     text = _normalize_newlines(text).strip()
     if not text:
         return ""
 
+    # Split by blank lines first
     paras = re.split(r"\n\s*\n+", text)
-    out: list[str] = []
 
+    # Fallback: no blank lines => one-paragraph-per-line TXT
+    if len(paras) == 1:
+        lines = [ln.strip() for ln in text.split("\n")]
+        lines = [ln for ln in lines if ln]
+        return "\n".join(f"<p>{html.escape(ln)}</p>" for ln in lines)
+
+    out: list[str] = []
     for p in paras:
         p = p.strip()
         if not p:
             continue
 
-        # Join wrapped lines inside the paragraph with a space
-        # (prevents Kindle from treating every newline as a visual break)
+        # Join wrapped lines inside a paragraph
         lines = [line.strip() for line in p.split("\n")]
         joined = " ".join([ln for ln in lines if ln])
-
         out.append(f"<p>{html.escape(joined)}</p>")
 
     return "\n".join(out)
+
 
 
 def txt_to_epub(
