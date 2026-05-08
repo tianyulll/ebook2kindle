@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>ebook2kindle</string>
 	<key>CFBundleIconFile</key>
-	<string>icon-windowed.icns</string>
+	<string>ebook.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>ebook2kindle</string>
 	<key>CFBundleInfoDictionaryVersion</key>

@@ -8,6 +8,51 @@ from userConfig import load_settings, SettingsDialog, generate_css
 from send2device import send_files_via_smtp, EmailSendError
 
 
+class ToolTip:
+    def __init__(self, widget, text, delay=500):
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.id = None
+        self.tipwindow = None
+        widget.bind("<Enter>", self.enter)
+        widget.bind("<Leave>", self.leave)
+        widget.bind("<ButtonPress>", self.leave)
+
+    def enter(self, event=None):
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hidetip()
+
+    def schedule(self):
+        self.unschedule()
+        self.id = self.widget.after(self.delay, self.showtip)
+
+    def unschedule(self):
+        if self.id:
+            self.widget.after_cancel(self.id)
+            self.id = None
+
+    def showtip(self):
+        if self.tipwindow or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 1
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(tw, text=self.text, justify=tk.LEFT, background="#ffffe0", relief=tk.SOLID,
+                         borderwidth=1, font=("tahoma", "8", "normal"))
+        label.pack(ipadx=4, ipady=2)
+
+    def hidetip(self):
+        if self.tipwindow:
+            self.tipwindow.destroy()
+            self.tipwindow = None
+
+
 class App:
     
 
@@ -40,7 +85,7 @@ class App:
         drag_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Create a label inside the combined frame for dragging files
-        self.drag_label = tk.Label(drag_frame, text="Drag and drop Your txt files", font=("Helvetica", 28), bg="white", fg="Grey", anchor="center")
+        self.drag_label = tk.Label(drag_frame, text="Drop your txt file(s)", font=("Helvetica", 28), bg="white", fg="Grey", anchor="center")
         self.drag_label.pack(fill=tk.BOTH, expand=True, pady=10)
 
         # Bind the drag-and-drop event to the on_drop function
@@ -49,7 +94,8 @@ class App:
 
         # Create a frame to hold the buttons side by side
         button_frame = tk.Frame(self.root, height=10)
-        button_frame.pack(pady=5)
+        button_frame.pack(fill=tk.X, padx=10, pady=5)
+        button_bg = button_frame.cget("bg")
 
         # button to start processing files
         process_button = tk.Button(button_frame, text="Start Conversion", command=self.click_process,
@@ -60,21 +106,26 @@ class App:
                                 command = self.click_send,
                                 relief=tk.FLAT, borderwidth=0, highlightthickness=0)
         
-        # button to reset queues
-        trash_button = tk.Button(drag_frame,  text= "🗑️", command = self.reset_app,
-                                 relief=tk.FLAT, highlightbackground="white")
-                                 #borderwidth=0, bg="white", highlightbackground="white", padx=0, pady=0)
+        # clickable icon to reset queues (uses Label to avoid native button focus rings)
+        trash_button = tk.Label(drag_frame, text="🗑️", bg="white", cursor="hand2")
+        trash_button.bind("<Button-1>", lambda _event: self.reset_app())
         trash_button.pack(side=tk.RIGHT, padx = 3, pady=5)
 
-        # button to reset email credentials
+        # clickable icon to open settings (uses Label to avoid native button focus rings)
         helv24 = tkFont.Font(family='Helvetica', size=24)
-        reset_button = tk.Button(button_frame, text="⚙", font=helv24, command=self.open_settings, 
-                                 relief=tk.FLAT, bd=0, borderwidth=0)
+        reset_button = tk.Label(button_frame, text="⚙", font=helv24, bg=button_bg, cursor="hand2")
+        reset_button.bind("<Button-1>", lambda _event: self.open_settings())
 
-        button_frame.columnconfigure(1, weight=1)
-        process_button.grid(row=0, column=0, padx=40)
-        send_button.grid(row=0, column=1, padx=40)
-        reset_button.grid(row=0, column=5, padx=0)
+        ToolTip(process_button, "Convert selected TXT files into the desired ebook format.")
+        ToolTip(send_button, "Email converted files to your Kindle address.")
+        ToolTip(trash_button, "Clear the current selection and conversion queue.")
+        ToolTip(reset_button, "Open settings to update Kindle/email configuration.")
+
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(3, weight=1)
+        process_button.grid(row=0, column=1, padx=40)
+        send_button.grid(row=0, column=2, padx=40)
+        reset_button.grid(row=0, column=4, padx=3)
 
         # Create a text widget to display command output
         self.output_text = tk.Text(self.root, height=5, wrap=tk.WORD, bg="black", fg="white", 
