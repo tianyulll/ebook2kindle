@@ -7,6 +7,8 @@ from typing import Callable, Optional
 import uuid
 import html
 import re
+import os
+import tempfile
 
 
 @dataclass
@@ -105,6 +107,9 @@ def split_into_chapters(text: str) -> list[tuple[str, str]]:
         return [("正文", text.strip())]
 
     chapters: list[tuple[str, str]] = []
+    opening = "\n".join(lines[:heading_idxs[0]]).strip()
+    if opening:
+        chapters.append(("前言", opening))
 
     for k, start_idx in enumerate(heading_idxs):
         end_idx = heading_idxs[k + 1] if k + 1 < len(heading_idxs) else len(lines)
@@ -259,7 +264,31 @@ def txt_to_epub(
         )
 
     _log("Writing EPUB to disk...")
-    epub.write_epub(str(out_path), book, {})
+    # Build beside the destination, then publish with an atomic no-clobber link.
+    # Unlike exists() followed by replace(), this also protects against races.
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=".ebook2kindle-", suffix=".epub", dir=out_path.parent,
+    )
+    os.close(descriptor)
+    temporary_path = Path(temporary_name)
+    try:
+        if epub.write_epub(str(temporary_path), book, {"raise_exceptions": True}) is False:
+            raise OSError("Could not write the EPUB file.")
+        with temporary_path.open("rb") as output:
+            os.fsync(output.fileno())
+        requested_path = out_path
+        number = 1
+        while True:
+            try:
+                os.link(temporary_path, out_path)
+                break
+            except FileExistsError:
+                out_path = requested_path.with_name(
+                    f"{requested_path.stem} ({number}){requested_path.suffix}"
+                )
+                number += 1
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
     return EpubResult(
         input_txt=in_path,
@@ -267,4 +296,3 @@ def txt_to_epub(
         language=lang,
         encoding=enc_used,
     )
-

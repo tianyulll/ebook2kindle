@@ -1,177 +1,253 @@
 from __future__ import annotations
 
-import tkinter as tk
-from tkinter import ttk, messagebox
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QButtonGroup,
+    QCheckBox,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSizePolicy,
+    QSpinBox,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .setting import Settings, save_settings
 
 
-class SettingsDialog(tk.Toplevel):
-    def __init__(self, master, settings: Settings, on_saved=None):
-        super().__init__(master)
-        self.title("Settings")
-        self.transient(master)
-        self.grab_set()
+def _label(text: str, object_name: str | None = None, word_wrap: bool = False) -> QLabel:
+    widget = QLabel(text)
+    if object_name:
+        widget.setObjectName(object_name)
+    widget.setWordWrap(word_wrap)
+    return widget
 
+
+class SettingsDialog(QDialog):
+    def __init__(self, parent, settings: Settings, on_saved=None):
+        super().__init__(parent)
         self.settings = settings
         self.on_saved = on_saved
 
-        container = ttk.Frame(self, padding=12)
-        container.pack(fill="both", expand=True)
+        self.setWindowTitle("Settings")
+        self.setModal(True)
+        self.resize(700, 570)
+        self.setMinimumSize(640, 540)
 
-        # --- Layout (CSS) ---
-        css_frame = ttk.LabelFrame(container, text="Layout (CSS)", padding=10)
-        css_frame.pack(fill="x")
+        self._create_widgets()
 
-        ttk.Label(css_frame, text="Paragraph text indent (em):").grid(row=0, column=0, sticky="w")
-        self.indent_var = tk.DoubleVar(value=float(self.settings.text_indent_em))
-        ttk.Spinbox(
-            css_frame, from_=0.0, to=6.0, increment=0.1,
-            textvariable=self.indent_var, width=8
-        ).grid(row=0, column=1, sticky="w", padx=(10, 0))
+    def _create_widgets(self):
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(24, 16, 24, 16)
+        outer.setSpacing(10)
 
-        ttk.Label(css_frame, text="Paragraph spacing (em):").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.spacing_var = tk.DoubleVar(value=float(self.settings.paragraph_spacing_em))
-        ttk.Spinbox(
-            css_frame, from_=0.0, to=3.0, increment=0.1,
-            textvariable=self.spacing_var, width=8
-        ).grid(row=1, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
+        title = _label("Settings", "hero")
+        subtitle = _label(
+            "Configure Kindle delivery and advanced mail settings.",
+            "muted",
+            True,
+        )
+        outer.addWidget(title)
+        outer.addWidget(subtitle)
 
-        css_frame.columnconfigure(0, weight=1)
+        navigation = QFrame()
+        navigation.setObjectName("segmentedControl")
+        navigation_layout = QHBoxLayout(navigation)
+        navigation_layout.setContentsMargins(4, 4, 4, 4)
+        navigation_layout.setSpacing(4)
 
-        # --- Email (Send to Kindle) ---
-        mail_frame = ttk.LabelFrame(container, text="Email (Send to Kindle)", padding=10)
-        mail_frame.pack(fill="x", pady=(10, 0))
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self._create_delivery_tab())
+        self.pages.addWidget(self._create_advanced_tab())
 
-        ttk.Label(mail_frame, text="Kindle email:").grid(row=0, column=0, sticky="w")
-        self.kindle_email_var = tk.StringVar(value=self.settings.kindle_email)
-        ttk.Entry(mail_frame, textvariable=self.kindle_email_var, width=40).grid(
-            row=0, column=1, sticky="w", padx=(10, 0)
+        self.section_buttons: list[QPushButton] = []
+        for index, title_text in enumerate(("Kindle delivery", "Advanced SMTP")):
+            button = QPushButton(title_text)
+            button.setObjectName("segmentedButton")
+            button.setCheckable(True)
+            button.setAutoExclusive(True)
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            button.toggled.connect(
+                lambda checked, page=index: self.pages.setCurrentIndex(page) if checked else None
+            )
+            navigation_layout.addWidget(button, 1)
+            self.section_buttons.append(button)
+        self.section_buttons[0].setChecked(True)
+
+        outer.addWidget(navigation)
+        outer.addWidget(self.pages, 1)
+
+        footer = QHBoxLayout()
+        footer.setSpacing(10)
+        self.error_label = _label("", "errorLabel", True)
+        footer.addWidget(self.error_label, 1)
+
+        cancel = QPushButton("Cancel")
+        cancel.clicked.connect(self.reject)
+        save = QPushButton("Save settings")
+        save.setObjectName("primaryButton")
+        save.clicked.connect(self._save)
+        footer.addWidget(cancel)
+        footer.addWidget(save)
+        outer.addLayout(footer)
+
+    def _tab_card(self) -> tuple[QWidget, QVBoxLayout]:
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(22, 12, 22, 12)
+        layout.setSpacing(8)
+        return tab, layout
+
+    def _create_delivery_tab(self) -> QWidget:
+        tab, layout = self._tab_card()
+        layout.setSpacing(6)
+        layout.addWidget(_label("Kindle destination", "cardTitle"))
+        layout.addWidget(
+            _label(
+                "Use the Kindle address listed in your Amazon device settings.",
+                "muted",
+                True,
+            )
         )
 
-        ttk.Label(mail_frame, text="Sender email:").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.sender_email_var = tk.StringVar(value=self.settings.sender_email)
-        ttk.Entry(mail_frame, textvariable=self.sender_email_var, width=40).grid(
-            row=1, column=1, sticky="w", padx=(10, 0), pady=(8, 0)
+        self.kindle_email_input = QLineEdit(self.settings.kindle_email)
+        self.kindle_email_input.setPlaceholderText("reader@kindle.com")
+        layout.addWidget(self._field_group("Kindle email", self.kindle_email_input))
+
+        self.sender_email_input = QLineEdit(self.settings.sender_email)
+        self.sender_email_input.setPlaceholderText("you@example.com")
+        layout.addWidget(self._field_group("Sender email", self.sender_email_input))
+
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.setPlaceholderText(
+            "Leave blank to keep the saved password"
+            if self.settings.has_sender_password()
+            else "Enter an app-specific password"
+        )
+        layout.addWidget(self._field_group("App password", self.password_input))
+
+        show_password = QCheckBox("Show password")
+        show_password.toggled.connect(
+            lambda checked: self.password_input.setEchoMode(
+                QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password
+            )
+        )
+        layout.addWidget(show_password)
+
+        hint = (
+            "A password is already saved. Leave the field blank to keep it."
+            if self.settings.has_sender_password()
+            else "Use an app-specific password rather than your account password."
+        )
+        layout.addWidget(_label(hint, "caption", True))
+        layout.addStretch(1)
+        return tab
+
+    @staticmethod
+    def _field_group(title: str, field: QWidget) -> QWidget:
+        group = QWidget()
+        group_layout = QVBoxLayout(group)
+        group_layout.setContentsMargins(0, 0, 0, 0)
+        group_layout.setSpacing(4)
+        group_layout.addWidget(_label(title, "value"))
+        group_layout.addWidget(field)
+        return group
+
+    def _create_advanced_tab(self) -> QWidget:
+        tab, layout = self._tab_card()
+        layout.addWidget(_label("SMTP connection", "cardTitle"))
+        layout.addWidget(
+            _label(
+                "The Gmail defaults work for most users. Change these only if your provider requires it.",
+                "muted",
+                True,
+            )
         )
 
-        # Sender password (encrypted at save time)
-        ttk.Label(mail_frame, text="Sender password:").grid(row=2, column=0, sticky="w", pady=(8, 0))
-        self.sender_pass_var = tk.StringVar(value="")
+        layout.addWidget(_label("SMTP host", "value"))
+        self.smtp_host_input = QLineEdit(self.settings.smtp_host)
+        layout.addWidget(self.smtp_host_input)
 
-        self.sender_pass_entry = ttk.Entry(
-            mail_frame, textvariable=self.sender_pass_var, width=40, show="•"
-        )
-        self.sender_pass_entry.grid(row=2, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
-        
-        # Show password toggle
-        self.show_pass_var = tk.BooleanVar(value=False)
+        layout.addWidget(_label("SMTP port", "value"))
+        self.smtp_port_input = QSpinBox()
+        self.smtp_port_input.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.smtp_port_input.setRange(1, 65535)
+        self.smtp_port_input.setValue(int(self.settings.smtp_port))
+        self.smtp_port_input.setFixedWidth(130)
+        layout.addWidget(self.smtp_port_input, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        def _toggle_show_password() -> None:
-            self.sender_pass_entry.configure(show="" if self.show_pass_var.get() else "•")
+        layout.addWidget(_label("Connection security", "value"))
+        security_options = QWidget()
+        options_layout = QHBoxLayout(security_options)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setSpacing(10)
+        self.tls_mode_group = QButtonGroup(self)
+        for index, (title, mode) in enumerate((
+            ("STARTTLS (recommended)", "starttls"),
+            ("Implicit TLS", "implicit_tls"),
+        )):
+            button = QPushButton(title)
+            button.setObjectName("securityOption")
+            button.setCheckable(True)
+            button.setAutoDefault(False)
+            button.setProperty("tlsMode", mode)
+            self.tls_mode_group.addButton(button, index)
+            options_layout.addWidget(button, 1)
+        selected = 1 if self.settings.smtp_tls_mode == "implicit_tls" else 0
+        self.tls_mode_group.button(selected).setChecked(True)
+        self.tls_mode_group.idClicked.connect(self._sync_tls_port)
+        layout.addWidget(security_options)
+        layout.addStretch(1)
+        return tab
 
-        ttk.Checkbutton(
-            mail_frame,
-            text="Show password",
-            variable=self.show_pass_var,
-            command=_toggle_show_password,
-        ).grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(4, 0))
-        
-        # Hint (blank keeps existing)
-        has_saved_pw = bool(getattr(self.settings, "sender_pass_enc", "") or "")
-        hint = "Leave blank to keep the saved password." if has_saved_pw else "Enter an app password (recommended)."
-        ttk.Label(mail_frame, text=hint).grid(row=4, column=1, sticky="w", padx=(10, 0), pady=(4, 0))
-
-        ttk.Label(mail_frame, text="SMTP host:").grid(row=5, column=0, sticky="w", pady=(8, 0))
-        self.smtp_host_var = tk.StringVar(value=self.settings.smtp_host)
-        ttk.Entry(mail_frame, textvariable=self.smtp_host_var, width=30).grid(
-            row=4, column=1, sticky="w", padx=(10, 0), pady=(8, 0)
-        )
-
-        ttk.Label(mail_frame, text="SMTP port:").grid(row=6, column=0, sticky="w", pady=(8, 0))
-        self.smtp_port_var = tk.IntVar(value=int(self.settings.smtp_port))
-        ttk.Spinbox(
-            mail_frame, from_=1, to=65535, increment=1,
-            textvariable=self.smtp_port_var, width=8
-        ).grid(row=5, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
-
-        self.smtp_tls_var = tk.BooleanVar(value=bool(self.settings.smtp_use_tls))
-        ttk.Checkbutton(mail_frame, text="Use STARTTLS (recommended)", variable=self.smtp_tls_var).grid(
-            row=7, column=0, columnspan=2, sticky="w", pady=(8, 0)
+    def _sync_tls_port(self):
+        if self.smtp_port_input.value() not in {465, 587}:
+            return
+        self.smtp_port_input.setValue(
+            465 if self.tls_mode_group.checkedId() == 1 else 587
         )
 
-        mail_frame.columnconfigure(0, weight=1)
-
-        # --- Buttons ---
-        btns = ttk.Frame(container)
-        btns.pack(fill="x", pady=(14, 0))
-
-        ttk.Button(btns, text="Cancel", command=self.destroy).pack(side="right")
-        ttk.Button(btns, text="Save", command=self._save).pack(side="right", padx=(0, 10))
-
-        self.geometry("560x480")
+    def _show_error(self, message: str, widget=None):
+        self.error_label.setText(message)
+        if widget is not None:
+            widget.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _save(self):
-        # Validate numeric CSS values
-        try:
-            indent = float(self.indent_var.get())
-            spacing = float(self.spacing_var.get())
-        except Exception:
-            messagebox.showerror("Invalid value", "Indent/spacing must be numeric.")
-            return
-
-        if not (0.0 <= indent <= 6.0):
-            messagebox.showerror("Invalid value", "Indent must be between 0 and 6 (em).")
-            return
-        if not (0.0 <= spacing <= 3.0):
-            messagebox.showerror("Invalid value", "Spacing must be between 0 and 3 (em).")
-            return
-
-        # Email settings (light validation; keep it permissive)
-        kindle_email = (self.kindle_email_var.get() or "").strip()
-        sender_email = (self.sender_email_var.get() or "").strip()
-        sender_password = (self.sender_pass_var.get() or "").strip()
-        smtp_host = (self.smtp_host_var.get() or "").strip()
-        try:
-            smtp_port = int(self.smtp_port_var.get())
-        except Exception:
-            messagebox.showerror("Invalid value", "SMTP port must be an integer.")
-            return
-
-        if smtp_host == "":
-            smtp_host = "smtp.gmail.com"
-
-        if not (1 <= smtp_port <= 65535):
-            messagebox.showerror("Invalid value", "SMTP port must be between 1 and 65535.")
-            return
-
-        # Apply
-        self.settings.text_indent_em = indent
-        self.settings.paragraph_spacing_em = spacing
+        self.error_label.clear()
+        kindle_email = self.kindle_email_input.text().strip()
+        sender_email = self.sender_email_input.text().strip()
+        sender_password = self.password_input.text().strip()
+        smtp_host = self.smtp_host_input.text().strip() or "smtp.gmail.com"
 
         self.settings.kindle_email = kindle_email
         self.settings.sender_email = sender_email
         self.settings.smtp_host = smtp_host
-        self.settings.smtp_port = smtp_port
-        self.settings.smtp_use_tls = bool(self.smtp_tls_var.get())
+        self.settings.smtp_port = int(self.smtp_port_input.value())
+        self.settings.smtp_tls_mode = str(self.tls_mode_group.checkedButton().property("tlsMode"))
 
-        # Encrypt+store password only if user entered one
         if sender_password:
             try:
                 self.settings.set_sender_password(sender_password)
-            except Exception as e:
-                messagebox.showerror("Password error", f"Could not store password securely:\n{e}")
+            except Exception as exc:
+                self._show_error(
+                    f"Could not store the password securely: {exc}",
+                    self.password_input,
+                )
                 return
-        # else: leave existing sender_pass_enc unchanged
 
-        # Persist
         try:
             save_settings(self.settings)
-        except Exception as e:
-            messagebox.showerror("Save failed", f"Could not save settings:\n{e}")
+        except Exception as exc:
+            self._show_error(f"Could not save settings: {exc}")
             return
 
         if callable(self.on_saved):
             self.on_saved(self.settings)
-
-        self.destroy()
+        self.accept()

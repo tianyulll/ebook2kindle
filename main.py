@@ -1,10 +1,10 @@
 from gui import App
 
+
 def main():
-    # Initialize and run the GUI
     app = App()
-    app.root.mainloop()
+    raise SystemExit(app.run())
+
 
 if __name__ == "__main__":
     main()
-

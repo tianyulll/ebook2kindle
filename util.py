@@ -1,15 +1,6 @@
-import tkinter as tk
-import os
 from pathlib import Path
 import re
 from txt2epub import txt_to_epub
-
-# automatically close the message box in 5 seconds
-def auto_close_messagebox(parent, title, message, duration=5000):
-    msg_box = tk.Toplevel(parent)
-    msg_box.title(title)
-    tk.Label(msg_box, text=message).pack(padx=20, pady=20)
-    msg_box.after(duration, msg_box.destroy)
 
 def extract_metadata(input_path: Path) -> tuple[str, str]:
     """
@@ -58,7 +49,7 @@ def extract_metadata(input_path: Path) -> tuple[str, str]:
 
     return title, author
 
-def convert_format(file_path: str, output_display: tk.Text, css: str) -> str:
+def convert_format(file_path: str, css: str) -> str:
     input_path = Path(file_path)
     input_dir = input_path.parent
 
@@ -71,18 +62,11 @@ def convert_format(file_path: str, output_display: tk.Text, css: str) -> str:
     if input_path.suffix.lower() == ".epub":
         return str(input_path.resolve())
 
-    try:
-        res = txt_to_epub(
-            input_txt=input_path,
-            output_epub=output_path,
-            css=css,
-            title=auto_title,
-            author=auto_author,
-        )
-        output_display.insert(tk.END, res)
-        output_display.insert(tk.END, f"\n✅ Wrote: {res.output_epub}\n\n")
-    except Exception as e:
-        output_display.insert(tk.END, f"\n❌ Error converting {file_path}:\n{e}\n\n")
-
-    output_display.yview_moveto(1.0)
-    return str(output_path.resolve())
+    result = txt_to_epub(
+        input_txt=input_path,
+        output_epub=output_path,
+        css=css,
+        title=auto_title,
+        author=auto_author,
+    )
+    return str(result.output_epub.resolve())
