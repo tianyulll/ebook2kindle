@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Qt, Signal, Slot
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -317,10 +317,18 @@ class MainWindow(QMainWindow):
         self.current_worker = None
         self.thread_pool = QThreadPool.globalInstance()
 
+        self._create_actions()
         self._build_ui()
         self._refresh_settings_summary()
         self._refresh_queue()
         self._update_action_states()
+
+    def _create_actions(self):
+        self.close_action = QAction("Close Window", self)
+        self.close_action.setShortcuts(QKeySequence.StandardKey.Close)
+        self.close_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        self.close_action.triggered.connect(self.close)
+        self.addAction(self.close_action)
 
     def _build_ui(self):
         root = QWidget()

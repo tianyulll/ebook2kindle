@@ -25,6 +25,7 @@
 - Added typed delivery errors, message IDs, attachment preflight, and bounded transient retries.
 - Moved SMTP passwords to the operating-system credential store with automatic legacy migration.
 - Added mocked SMTP and delivery-worker coverage.
+- Fixed the standard macOS Command-W shortcut so it closes the app window.
 
 ## Previous application
 

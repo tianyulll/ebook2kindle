@@ -12,6 +12,7 @@ This is the internal companion to `README.md`. It is written for maintainers and
 - SMTP delivery uses immutable validated configuration, secure TLS modes, one message per book, structured results, and one bounded transient retry.
 - Conversion and delivery run through `QThreadPool`; UI widgets must only be touched on the main thread.
 - The legacy debug-details panel and its text-widget adapter have been removed.
+- The main window owns a platform-standard Close action, so Command-W closes the window on macOS.
 - Conversion preserves opening text before the first chapter. EPUBs are written to a temporary sibling and published with an atomic hard link; existing destinations get numbered alternatives such as `book (1).epub`. Filesystems without hard-link support fail safely rather than overwrite files.
 - SMTP acceptance is recorded before connection cleanup, so QUIT errors cannot retry an already accepted message.
 
@@ -65,6 +66,7 @@ For UI changes, render or launch the app and inspect:
 3. Disabled controls while a worker is running.
 4. Both sections of the Settings dialog, including STARTTLS and implicit TLS selection.
 5. Layout at the minimum supported window size.
+6. Command-W closes the active app window on macOS.
 
 ## Build and release
 
