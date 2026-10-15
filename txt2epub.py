@@ -4,6 +4,8 @@ from pathlib import Path
 from ebooklib import epub
 from typing import Callable, Optional
 
+from cover_generator import generate_cover_png
+
 import uuid
 import html
 import re
@@ -209,11 +211,21 @@ def txt_to_epub(
 
     _log("Assembling EPUB...")
 
+    book_title = title or in_path.stem
+    book_author = author or "Unknown"
+
     book = epub.EpubBook()
     book.set_identifier(str(uuid.uuid4()))
-    book.set_title(title)
+    book.set_title(book_title)
     book.set_language(lang)
-    book.add_author(author)
+    book.add_author(book_author)
+
+    _log("Generating cover...")
+    book.set_cover(
+        "cover.png",
+        generate_cover_png(book_title, book_author),
+        create_page=True,
+    )
 
     book.add_item(epub.EpubItem(
         uid="style",
@@ -252,7 +264,7 @@ def txt_to_epub(
     book.toc = tuple(toc_items)
     book.add_item(epub.EpubNcx())
     #book.add_item(epub.EpubNav())
-    book.spine = [*epub_chapters]
+    book.spine = ["cover", *epub_chapters]
 
     # Optional provenance: embed in first chapter
     if epub_chapters:

@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.0 — 2026-10-15
+
+- Fixed the standard macOS Command-W shortcut so it closes the app window.
+- Added automatic offline minimalist covers using detected English or Chinese title and author metadata.
+- Standardized every generated cover on a light background with dark text for grayscale Kindle visibility.
+- Added a delivery-sidebar link to Amazon's official Send to Kindle website.
+- Added semantic version metadata and a stable macOS bundle identifier to release builds.
+- Removed the retired splash, generated iconset, stale local release copies, previews, and cache files.
+
 ## v1.0-beta.2 — 2026-09-23
 
 - Added a Chinese usage guide and documented installation, release assets, and beta limitations.
@@ -25,7 +34,6 @@
 - Added typed delivery errors, message IDs, attachment preflight, and bounded transient retries.
 - Moved SMTP passwords to the operating-system credential store with automatic legacy migration.
 - Added mocked SMTP and delivery-worker coverage.
-- Fixed the standard macOS Command-W shortcut so it closes the app window.
 
 ## Previous application
 

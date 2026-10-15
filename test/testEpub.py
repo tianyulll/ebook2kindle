@@ -20,7 +20,12 @@ def assert_epub_structure(epub_path: Path) -> None:
     with zipfile.ZipFile(epub_path, "r") as archive:
         names = set(archive.namelist())
 
-    required = {"mimetype", "META-INF/container.xml"}
+    required = {
+        "mimetype",
+        "META-INF/container.xml",
+        "EPUB/cover.png",
+        "EPUB/cover.xhtml",
+    }
     missing = required - names
     if missing:
         raise AssertionError(f"Missing required EPUB entries: {sorted(missing)}")
@@ -138,8 +143,11 @@ English chapter content.
                     name for name in archive.namelist() if name.endswith(".xhtml")
                 ]
                 content = "\n".join(archive.read(name).decode("utf-8") for name in xhtml_files)
+                package = archive.read("EPUB/content.opf").decode("utf-8")
             self.assertIn("这是一本测试书 &amp; &lt;测试&gt;。", content)
             self.assertGreaterEqual(len(xhtml_files), 4)
+            self.assertIn('properties="cover-image"', package)
+            self.assertIn('<meta name="cover" content="cover-img">', package)
 
 
 if __name__ == "__main__":

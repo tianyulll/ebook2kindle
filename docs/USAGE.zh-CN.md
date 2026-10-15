@@ -2,15 +2,15 @@
 
 [English README](../README.md) · [下载应用](https://github.com/tianyulll/ebook2kindle/releases)
 
-ebook2kindle 可以将 TXT 小说转换为 EPUB，并通过邮件发送到 Kindle。支持批量处理、中英文章节识别，以及段落缩进和间距调整。只转换文件时，无需配置邮箱，也无需联网。
+ebook2kindle 可以将 TXT 小说转换为 EPUB，并通过邮件发送到 Kindle。支持批量处理、中英文章节识别、自动生成高对比度封面，以及段落缩进和间距调整。只转换文件时，无需配置邮箱，也无需联网。
 
 ## 1. 安装与启动
 
 当前预编译版本适用于 **Apple Silicon（M 系列芯片）Mac，macOS 13 或更高版本**。暂不提供 Intel Mac 或 Windows 安装包。
 
-1. 打开 GitHub Releases，下载 `ebook2kindle-v1.0-beta.2-macos-arm64.zip`，不要把 GitHub 自动生成的 Source code 压缩包当作应用。
+1. 打开 GitHub Releases，下载 `ebook2kindle-v1.0.0-macos-arm64.zip`，不要把 GitHub 自动生成的 Source code 压缩包当作应用。
 2. 解压，将 `ebook2kindle.app` 拖入“应用程序”，然后打开。
-3. 本测试版尚未经过 Apple Developer ID 签名和公证。如果 macOS 提示无法验证开发者，确认下载来源可信后，按 [Apple 官方说明](https://support.apple.com/guide/mac-help/mh40616/mac)在“系统设置 → 隐私与安全性”中处理该应用的打开提示。
+3. 当前应用尚未经过 Apple Developer ID 签名和公证。如果 macOS 提示无法验证开发者，确认下载来源可信后，按 [Apple 官方说明](https://support.apple.com/guide/mac-help/mh40616/mac)在“系统设置 → 隐私与安全性”中处理该应用的打开提示。
 
 如需校验下载完整性，将 ZIP 和同一 Release 中的 `SHA256SUMS.txt` 放在同一目录，打开终端并进入该目录后运行：
 
@@ -29,6 +29,8 @@ shasum -a 256 -c SHA256SUMS.txt
 5. 状态变为 **Converted** 后，到原 TXT 所在文件夹查看 EPUB。
 
 例如，`小说.txt` 会生成 `小说.epub`。如果同名 EPUB 已存在，则使用 `小说 (1).epub` 等编号名称，不覆盖原文件。源 TXT 保持不变；第一章之前的前言等文字也会保留。
+
+转换时会根据检测到的书名和作者自动生成封面，不需要额外操作。封面采用浅色背景和深色文字，便于黑白 Kindle 屏幕显示，并支持中文长书名自动换行。已有 EPUB 不会被修改或替换封面。
 
 请把 TXT 放在可写的本地文件夹中。安全保存依赖文件系统的硬链接支持；如果外置磁盘或网络共享不支持该功能，请先把 TXT 复制到 Mac 的本地 APFS 磁盘，再转换。
 
@@ -59,6 +61,8 @@ shasum -a 256 -c SHA256SUMS.txt
 点击 **Save settings**。密码保存在操作系统凭据存储中；以后编辑设置时，密码栏留空会保留已有密码。
 
 ## 4. 发送书籍
+
+如需使用 Amazon 网页上传，可在主窗口的 Kindle delivery 区域点击 **Open Amazon Send to Kindle**，在默认浏览器中打开 Amazon 官方页面。
 
 - **自动发送：** 加入 TXT 或 EPUB，勾选 **Send after conversion**，再点击 **Convert books**。TXT 转换成功后会发送；已有 EPUB 不会被重新排版。
 - **手动发送：** 先点击 **Convert books** 完成准备，再点击 **Send to Kindle**。
@@ -96,4 +100,4 @@ python main.py
 
 如果 `ebook` 环境已存在，跳过创建步骤。以上命令需在下载的源码目录中执行。
 
-本版本仍是测试版：已通过自动化测试和界面检查，但尚未完成独立测试邮箱的真实 SMTP 验证，以及全新 macOS 账号下的安装验证。问题反馈请附上操作步骤和错误提示，不要附带邮箱密码。
+v1.0.0 是正式版本，已通过自动化测试、界面检查、应用签名校验和启动测试。独立测试邮箱的真实 SMTP 验证，以及全新 macOS 账号下的安装验证仍待完成。问题反馈请附上操作步骤和错误提示，不要附带邮箱密码。

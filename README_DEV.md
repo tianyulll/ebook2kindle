@@ -13,6 +13,8 @@ This is the internal companion to `README.md`. It is written for maintainers and
 - Conversion and delivery run through `QThreadPool`; UI widgets must only be touched on the main thread.
 - The legacy debug-details panel and its text-widget adapter have been removed.
 - The main window owns a platform-standard Close action, so Command-W closes the window on macOS.
+- TXT conversion generates a deterministic minimalist PNG cover from detected title and author metadata. Every palette keeps a light background and dark text for grayscale Kindle visibility. Rendering is local, supports Chinese text, and does not call an image model or network service.
+- The delivery sidebar opens Amazon's official `https://www.amazon.com/sendtokindle` page through `QDesktopServices`; it does not upload files itself.
 - Conversion preserves opening text before the first chapter. EPUBs are written to a temporary sibling and published with an atomic hard link; existing destinations get numbered alternatives such as `book (1).epub`. Filesystems without hard-link support fail safely rather than overwrite files.
 - SMTP acceptance is recorded before connection cleanup, so QUIT errors cannot retry an already accepted message.
 
@@ -22,6 +24,7 @@ This is the internal companion to `README.md`. It is written for maintainers and
 main.py
   └─ gui.py                         Main Qt window, queue, workers, delivery flow
       ├─ ui_theme.py                Shared Qt stylesheet and visual tokens
+      ├─ cover_generator.py         Offline deterministic English/CJK cover rendering
       ├─ userConfig/setting_ui.py  Delivery and SMTP settings dialog
       ├─ userConfig/setting.py     Persistent settings and password encryption
       ├─ userConfig/css_config.py  EPUB paragraph CSS generation
@@ -33,6 +36,7 @@ main.py
 ## UX invariants
 
 - Keep controls and containers rounded; the visual system is centralized in `ui_theme.py`.
+- Generated covers must retain strong grayscale contrast: light backgrounds, dark title/author text, and no color-dependent meaning.
 - The main action must remain the stable label **Convert books**. Explain send-after behavior with its tooltip and checkbox, not a changing button width or label.
 - Styling sliders use tenths of an `em`: indent `0.0–6.0`, paragraph spacing `0.0–3.0`.
 - Styling changes are persisted immediately and applied when a conversion begins.
@@ -67,6 +71,8 @@ For UI changes, render or launch the app and inspect:
 4. Both sections of the Settings dialog, including STARTTLS and implicit TLS selection.
 5. Layout at the minimum supported window size.
 6. Command-W closes the active app window on macOS.
+7. Generated EPUBs contain `cover.png`, cover metadata, and a first-position cover page.
+8. The Amazon Send to Kindle link opens the official HTTPS URL in the default browser.
 
 ## Build and release
 
@@ -75,7 +81,7 @@ PROJECT_PYTHON="$(command -v python)" ./build.sh
 unzip -t dist/ebook2kindle.zip
 ```
 
-The build produces `dist/ebook2kindle.app` and `dist/ebook2kindle.zip`, then removes the intermediate `build/` directory and raw onedir bundle. Generated artifacts are ignored by Git. The current Apple Silicon build requires macOS 13 or later; it has an ad-hoc signature, not a Developer ID signature or Apple notarization. See [Release procedure](docs/RELEASING.md) for versioned assets and checksums.
+The build reads the semantic version from `VERSION`, writes it into the macOS bundle metadata, and produces `dist/ebook2kindle.app` and `dist/ebook2kindle.zip`. It then removes the intermediate `build/` directory and raw onedir bundle. Generated artifacts are ignored by Git. The current Apple Silicon build requires macOS 13 or later; it has an ad-hoc signature, not a Developer ID signature or Apple notarization. See [Release procedure](docs/RELEASING.md) for versioned assets and checksums.
 
 ## Known gaps
 
@@ -93,3 +99,5 @@ Before ending a substantial change:
 3. Visually inspect every UI surface affected by the change.
 4. Rebuild both deliverables when runtime code changes.
 5. Remove generated caches and confirm build intermediates are absent.
+
+The maintained icon sources are `img/icon.png` (1024 px master) and `img/ebook.icns` (packaged macOS icon). Do not restore generated `.iconset` files or the retired splash image.

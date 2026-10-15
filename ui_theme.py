@@ -141,6 +141,24 @@ QPushButton#compactButton {
     border-radius: 9px;
     font-size: 11px;
 }
+QPushButton#linkButton {
+    min-height: 32px;
+    padding: 0;
+    color: #5547D7;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 650;
+}
+QPushButton#linkButton:hover {
+    color: #4638C5;
+    background: #F0EEFF;
+}
+QPushButton#linkButton:pressed {
+    background: #E7E3FF;
+}
 QPushButton#removeButton {
     min-width: 32px;
     max-width: 32px;

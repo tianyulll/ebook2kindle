@@ -47,5 +47,5 @@ app = BUNDLE(
     coll,
     name='ebook2kindle.app',
     icon='img/ebook.icns',
-    bundle_identifier=None,
+    bundle_identifier='io.github.tianyulll.ebook2kindle',
 )

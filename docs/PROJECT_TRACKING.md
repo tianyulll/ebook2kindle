@@ -1,6 +1,6 @@
 # Project tracking
 
-Last updated: 2026-09-23
+Last updated: 2026-10-15
 
 ## Current release status
 
@@ -17,7 +17,9 @@ Last updated: 2026-09-23
 | macOS packaging | Complete | `.app` and ZIP produced by `build.sh` |
 | Conversion data safety | Complete | Numbered outputs, atomic publication, opening text preserved |
 | SMTP cleanup safety | Complete | Accepted submissions are not retried after QUIT errors |
-| Release documentation | Complete | English installation notes, Chinese usage guide, and beta release notes |
+| Automatic covers | Complete | Offline English/CJK metadata rendering with grayscale-safe contrast |
+| Amazon web delivery link | Complete | Opens the official Send to Kindle site in the default browser |
+| Release documentation | Complete | English installation notes, Chinese usage guide, and formal v1.0.0 release notes |
 
 ## Verification checklist
 
@@ -31,7 +33,9 @@ Last updated: 2026-09-23
 - [x] End-to-end background TXT conversion.
 - [x] PyInstaller app launch.
 - [x] ZIP integrity check.
-- [x] All 20 automated tests pass in the `ebook` Conda environment.
+- [x] Automatic cover PNG, EPUB metadata/spine, Chinese wrapping, grayscale contrast, and worker-thread rendering.
+- [x] Official Send to Kindle URL action.
+- [x] All automated tests pass in the `ebook` Conda environment.
 - [ ] Live SMTP delivery against a non-production test account.
 - [ ] Test on a clean macOS account without the development environment.
 
@@ -45,7 +49,7 @@ Last updated: 2026-09-23
 
 ## Release procedure
 
-See [RELEASING.md](RELEASING.md) for tag creation, versioned assets, checksums, and GitHub publication. Current release notes: [v1.0-beta.2](releases/v1.0-beta.2.md).
+See [RELEASING.md](RELEASING.md) for tag creation, versioned assets, checksums, and GitHub publication. Current release notes: [v1.0.0](releases/v1.0.0.md).
 
 ```bash
 python -m pip install -r requirements.txt

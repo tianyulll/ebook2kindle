@@ -3,8 +3,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Qt, Signal, Slot
-from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent, QKeySequence
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Qt, QUrl, Signal, Slot
+from PySide6.QtGui import (
+    QAction,
+    QDesktopServices,
+    QDragEnterEvent,
+    QDropEvent,
+    QKeySequence,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -35,6 +41,7 @@ from util import convert_format
 
 
 SUPPORTED_EXTENSIONS = {".txt", ".epub"}
+SEND_TO_KINDLE_URL = "https://www.amazon.com/sendtokindle"
 
 
 def _human_size(path: str) -> str:
@@ -452,6 +459,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.send_after_check)
         self.delivery_note = _label("", "caption", True)
         layout.addWidget(self.delivery_note)
+        self.amazon_send_button = QPushButton("Open Amazon Send to Kindle  ↗")
+        self.amazon_send_button.setObjectName("linkButton")
+        self.amazon_send_button.setToolTip("Open Amazon's official Send to Kindle website")
+        self.amazon_send_button.clicked.connect(self._open_amazon_send_to_kindle)
+        layout.addWidget(self.amazon_send_button)
         layout.addSpacing(12)
         layout.addWidget(_label("Book styling", "cardTitle"))
         layout.addWidget(
@@ -519,6 +531,10 @@ class MainWindow(QMainWindow):
         slider.setValue(value)
         card_layout.addWidget(slider)
         return card, slider, value_label
+
+    def _open_amazon_send_to_kindle(self):
+        if not QDesktopServices.openUrl(QUrl(SEND_TO_KINDLE_URL)):
+            self.activity_label.setText("Could not open Amazon Send to Kindle in your browser.")
 
     # ------------------------------------------------------------------
     # Queue

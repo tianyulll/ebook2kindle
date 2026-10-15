@@ -45,6 +45,13 @@ class MainWindowShortcutTests(unittest.TestCase):
 
         self.assertFalse(self.window.isVisible())
 
+    def test_amazon_send_to_kindle_button_opens_official_site(self):
+        with patch("gui.QDesktopServices.openUrl", return_value=True) as open_url:
+            self.window.amazon_send_button.click()
+
+        opened_url = open_url.call_args.args[0]
+        self.assertEqual(opened_url.toString(), "https://www.amazon.com/sendtokindle")
+
 
 if __name__ == "__main__":
     unittest.main()
